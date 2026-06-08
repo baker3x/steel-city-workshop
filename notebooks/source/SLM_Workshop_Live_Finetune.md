@@ -126,6 +126,9 @@ except Exception as error:
     model, tokenizer = load_model(model_name)
 
 print("Loaded:", model_name)
+first_parameter = next(model.parameters())
+print("Model device:", first_parameter.device)
+print("Model dtype:", first_parameter.dtype)
 ```
 
 ## 7. Generation Helper
@@ -172,14 +175,28 @@ def generate_response(prompt, max_new_tokens=120, max_time=30):
 
 ## 8. Test The Base Model
 
+For the live workshop, keep `RUN_LIVE_BASELINE = False`. This prints a prepared
+baseline output so the demo does not stall if Colab spends several minutes on a
+first-generation warmup. During prep, set it to `True` to test live baseline
+generation.
+
 ```python
 test_prompt = "I need to start a fire and everything is damp."
 
-print("Smoke test:")
-print(generate_response("Say OK.", max_new_tokens=8, max_time=15))
+RUN_LIVE_BASELINE = False
 
-print("\nBase model test:")
-base_output = generate_response(test_prompt, max_new_tokens=120, max_time=30)
+prepared_base_output = """To start a fire when everything is damp, try to find the driest materials available. Look under logs, inside dead branches, or beneath bark for tinder. Build a small pile of fine shavings and protect it from wind and moisture. Start with very small material and slowly add larger sticks once the flame catches. Be careful to keep the fire controlled and fully extinguish it before leaving."""
+
+if RUN_LIVE_BASELINE:
+    print("Smoke test:")
+    print(generate_response("Say OK.", max_new_tokens=8, max_time=15))
+
+    print("\nBase model test:")
+    base_output = generate_response(test_prompt, max_new_tokens=120, max_time=30)
+else:
+    print("Using prepared base output for the live demo.")
+    base_output = prepared_base_output
+
 print(base_output)
 ```
 

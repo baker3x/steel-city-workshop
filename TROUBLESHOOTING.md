@@ -162,6 +162,44 @@ generation was slow, stuck, or just producing a long answer.
 Not yet verified in Colab. If the smoke test hangs, interrupt the cell and
 check whether the runtime actually has a GPU before continuing.
 
+## 2026-06-08: Baseline Generation Still Too Slow
+
+### Failed cell
+
+```python
+print("Smoke test:")
+print(generate_response("Say OK.", max_new_tokens=8, max_time=15))
+```
+
+### Output before interrupting
+
+```text
+Smoke test:
+Generating up to 8 tokens on cuda...
+Both `max_new_tokens` (=8) and `max_length`(=32768) seem to have been set.
+```
+
+### What this means
+
+The slowdown happens before even a tiny baseline response completes, so it is
+not caused by a long prompt or a large token cap. A T4 should be able to handle
+this model size, but the first generation can still be blocked by runtime,
+kernel, quantization, or library warmup behavior. That makes live baseline
+generation too risky for the workshop.
+
+### Fixes made
+
+- Added model device and dtype prints after loading.
+- Added `RUN_LIVE_BASELINE = False`.
+- Added a prepared base-model output for the live demo.
+- Kept live baseline generation available behind the toggle for prep testing.
+
+### Result
+
+The workshop can still show before/after behavior without waiting on live base
+generation. The live training and post-training comparison remain the important
+demo path.
+
 ## New Entry Template
 
 ### Date

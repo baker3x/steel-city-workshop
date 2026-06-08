@@ -52,6 +52,10 @@ Runtime -> Restart runtime
 
 6. Rerun the environment check and continue.
 
+The notebook uses a prepared base-model output by default so the live demo does
+not stall on first-token generation. Set `RUN_LIVE_BASELINE = True` only during
+prep if you want to test live base-model generation.
+
 ## Workshop Flow
 
 The notebook follows this order:
