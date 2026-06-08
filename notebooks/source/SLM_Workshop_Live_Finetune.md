@@ -135,11 +135,12 @@ print("Model dtype:", first_parameter.dtype)
 
 ```python
 import time
+from transformers import TextStreamer
 
 if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
     tokenizer.pad_token = tokenizer.eos_token
 
-def generate_response(prompt, max_new_tokens=120, max_time=90):
+def generate_response(prompt, max_new_tokens=120, max_time=90, stream=True):
     messages = [
         {"role": "user", "content": prompt}
     ]
@@ -153,6 +154,13 @@ def generate_response(prompt, max_new_tokens=120, max_time=90):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     inputs = tokenizer([text], return_tensors="pt").to(device)
     target_length = inputs["input_ids"].shape[-1] + max_new_tokens
+    streamer = None
+    if stream:
+        streamer = TextStreamer(
+            tokenizer,
+            skip_prompt=True,
+            skip_special_tokens=True,
+        )
 
     print(f"Generating up to {max_new_tokens} tokens on {device}...")
     started_at = time.time()
@@ -166,6 +174,7 @@ def generate_response(prompt, max_new_tokens=120, max_time=90):
             use_cache=True,
             eos_token_id=tokenizer.eos_token_id,
             pad_token_id=tokenizer.pad_token_id,
+            streamer=streamer,
         )
 
     print(f"Generation finished in {time.time() - started_at:.1f}s")
@@ -190,15 +199,16 @@ prepared_base_output = """I understand. I'm not sure I can help with that. I'm a
 
 if RUN_LIVE_BASELINE:
     print("Smoke test:")
-    print(generate_response("Say OK.", max_new_tokens=8, max_time=15))
+    smoke_output = generate_response("Say OK.", max_new_tokens=8, max_time=90, stream=True)
 
     print("\nBase model test:")
-    base_output = generate_response(test_prompt, max_new_tokens=120, max_time=30)
+    base_output = generate_response(test_prompt, max_new_tokens=120, max_time=180, stream=True)
 else:
     print("Using prepared base output from prep run.")
     base_output = prepared_base_output
 
-print(base_output)
+if not RUN_LIVE_BASELINE:
+    print(base_output)
 ```
 
 ## 9. Create Survival Dataset
@@ -513,8 +523,6 @@ trainer_stats = trainer.train()
 ## 13. Test Fine-Tuned Model
 
 ```python
-from transformers import TextStreamer
-
 FastLanguageModel.for_inference(model)
 
 def survival_generate(prompt, max_new_tokens=260, max_time=180, stream=True):

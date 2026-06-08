@@ -251,6 +251,26 @@ showed that Transformers was still seeing the model's 32k configured
 Needs Colab verification. The next run should stream the fine-tuned JSON instead
 of waiting silently and returning only `{`.
 
+## 2026-06-08: Stream Base And Fine-Tuned Output
+
+### Change
+
+The base-model helper now also supports `TextStreamer`, matching the fine-tuned
+helper.
+
+### Why
+
+When live baseline generation is enabled during prep, token streaming makes it
+clear that the runtime is working instead of silently waiting for the whole
+response. The workshop default still uses the prepared baseline so the class
+does not wait through first-generation warmup.
+
+### Result
+
+- `generate_response(..., stream=True)` streams base-model tokens.
+- `survival_generate(..., stream=True)` streams fine-tuned tokens.
+- `RUN_LIVE_BASELINE = False` remains the safe live-demo default.
+
 ## New Entry Template
 
 ### Date
