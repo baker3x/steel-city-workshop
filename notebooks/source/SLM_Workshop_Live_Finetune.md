@@ -131,7 +131,12 @@ print("Loaded:", model_name)
 ## 7. Generation Helper
 
 ```python
-def generate_response(prompt, max_new_tokens=400, temperature=0.7):
+import time
+
+if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
+    tokenizer.pad_token = tokenizer.eos_token
+
+def generate_response(prompt, max_new_tokens=120, max_time=30):
     messages = [
         {"role": "user", "content": prompt}
     ]
@@ -142,15 +147,24 @@ def generate_response(prompt, max_new_tokens=400, temperature=0.7):
         add_generation_prompt=True
     )
 
-    inputs = tokenizer([text], return_tensors="pt").to("cuda")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    inputs = tokenizer([text], return_tensors="pt").to(device)
 
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=0.9,
-        do_sample=True
-    )
+    print(f"Generating up to {max_new_tokens} tokens on {device}...")
+    started_at = time.time()
+
+    with torch.inference_mode():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            max_time=max_time,
+            do_sample=False,
+            use_cache=True,
+            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+
+    print(f"Generation finished in {time.time() - started_at:.1f}s")
 
     new_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True)
@@ -161,7 +175,11 @@ def generate_response(prompt, max_new_tokens=400, temperature=0.7):
 ```python
 test_prompt = "I need to start a fire and everything is damp."
 
-base_output = generate_response(test_prompt)
+print("Smoke test:")
+print(generate_response("Say OK.", max_new_tokens=8, max_time=15))
+
+print("\nBase model test:")
+base_output = generate_response(test_prompt, max_new_tokens=120, max_time=30)
 print(base_output)
 ```
 
@@ -479,7 +497,7 @@ trainer_stats = trainer.train()
 ```python
 FastLanguageModel.for_inference(model)
 
-def survival_generate(prompt, max_new_tokens=450):
+def survival_generate(prompt, max_new_tokens=220, max_time=30):
     messages = [
         {"role": "user", "content": make_user_content(prompt)}
     ]
@@ -490,15 +508,24 @@ def survival_generate(prompt, max_new_tokens=450):
         add_generation_prompt=True
     )
 
-    inputs = tokenizer([text], return_tensors="pt").to("cuda")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    inputs = tokenizer([text], return_tensors="pt").to(device)
 
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=max_new_tokens,
-        temperature=0.2,
-        top_p=0.9,
-        do_sample=True
-    )
+    print(f"Generating up to {max_new_tokens} tokens on {device}...")
+    started_at = time.time()
+
+    with torch.inference_mode():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            max_time=max_time,
+            do_sample=False,
+            use_cache=True,
+            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+
+    print(f"Generation finished in {time.time() - started_at:.1f}s")
 
     new_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True)

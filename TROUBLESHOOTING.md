@@ -124,6 +124,44 @@ Walked through the repo as an attendee would:
 Local static checks passed. Full GPU execution still needs to be verified in
 Colab.
 
+## 2026-06-08: Base Model Generation Hung
+
+### Failed cell
+
+```python
+test_prompt = "I need to start a fire and everything is damp."
+
+base_output = generate_response(test_prompt)
+print(base_output)
+```
+
+### Error
+
+The cell ran for more than 5 minutes without producing output.
+
+### What this means
+
+This is most likely an inference configuration problem or a runtime performance
+problem, not a training problem. The original base test asked for up to 400 new
+tokens with sampling and no timing printout, so it was hard to tell whether
+generation was slow, stuck, or just producing a long answer.
+
+### Fixes made
+
+- Added a tiny `Say OK.` smoke test before the real base prompt.
+- Lowered base generation to 120 tokens.
+- Lowered fine-tuned generation to 220 tokens.
+- Switched live-demo inference to deterministic `do_sample=False`.
+- Added `max_time` caps to generation calls.
+- Added elapsed-time logging.
+- Used the available runtime device instead of hardcoding `cuda`.
+- Set `pad_token` from `eos_token` when needed.
+
+### Result
+
+Not yet verified in Colab. If the smoke test hangs, interrupt the cell and
+check whether the runtime actually has a GPU before continuing.
+
 ## New Entry Template
 
 ### Date
