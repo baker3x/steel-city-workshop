@@ -101,7 +101,7 @@ compatibility, the code falls back to Qwen2.5 0.5B Instruct.
 ```python
 max_seq_length = 1024
 dtype = None
-load_in_4bit = True
+load_in_4bit = False
 
 PRIMARY_MODEL = "unsloth/gemma-3-270m-it"
 BACKUP_MODEL = "unsloth/Qwen2.5-0.5B-Instruct"
@@ -139,7 +139,7 @@ import time
 if tokenizer.pad_token_id is None and tokenizer.eos_token_id is not None:
     tokenizer.pad_token = tokenizer.eos_token
 
-def generate_response(prompt, max_new_tokens=120, max_time=30):
+def generate_response(prompt, max_new_tokens=120, max_time=90):
     messages = [
         {"role": "user", "content": prompt}
     ]
@@ -152,6 +152,7 @@ def generate_response(prompt, max_new_tokens=120, max_time=30):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     inputs = tokenizer([text], return_tensors="pt").to(device)
+    target_length = inputs["input_ids"].shape[-1] + max_new_tokens
 
     print(f"Generating up to {max_new_tokens} tokens on {device}...")
     started_at = time.time()
@@ -159,7 +160,7 @@ def generate_response(prompt, max_new_tokens=120, max_time=30):
     with torch.inference_mode():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=max_new_tokens,
+            max_length=target_length,
             max_time=max_time,
             do_sample=False,
             use_cache=True,
@@ -512,9 +513,11 @@ trainer_stats = trainer.train()
 ## 13. Test Fine-Tuned Model
 
 ```python
+from transformers import TextStreamer
+
 FastLanguageModel.for_inference(model)
 
-def survival_generate(prompt, max_new_tokens=220, max_time=30):
+def survival_generate(prompt, max_new_tokens=260, max_time=180, stream=True):
     messages = [
         {"role": "user", "content": make_user_content(prompt)}
     ]
@@ -527,6 +530,14 @@ def survival_generate(prompt, max_new_tokens=220, max_time=30):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     inputs = tokenizer([text], return_tensors="pt").to(device)
+    target_length = inputs["input_ids"].shape[-1] + max_new_tokens
+    streamer = None
+    if stream:
+        streamer = TextStreamer(
+            tokenizer,
+            skip_prompt=True,
+            skip_special_tokens=True,
+        )
 
     print(f"Generating up to {max_new_tokens} tokens on {device}...")
     started_at = time.time()
@@ -534,12 +545,13 @@ def survival_generate(prompt, max_new_tokens=220, max_time=30):
     with torch.inference_mode():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=max_new_tokens,
+            max_length=target_length,
             max_time=max_time,
             do_sample=False,
             use_cache=True,
             eos_token_id=tokenizer.eos_token_id,
             pad_token_id=tokenizer.pad_token_id,
+            streamer=streamer,
         )
 
     print(f"Generation finished in {time.time() - started_at:.1f}s")
@@ -547,8 +559,7 @@ def survival_generate(prompt, max_new_tokens=220, max_time=30):
     new_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(new_tokens, skip_special_tokens=True)
 
-fine_tuned_output = survival_generate(test_prompt)
-print(fine_tuned_output)
+fine_tuned_output = survival_generate(test_prompt, stream=True)
 ```
 
 ## 14. Compare Prompts
@@ -565,7 +576,8 @@ for prompt in test_prompts:
     print("=" * 80)
     print("PROMPT:", prompt)
     print("-" * 80)
-    print(survival_generate(prompt))
+    output = survival_generate(prompt, max_new_tokens=220, max_time=180, stream=False)
+    print(output)
 ```
 
 ## 15. Save Adapter Locally

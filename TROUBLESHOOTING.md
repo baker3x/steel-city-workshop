@@ -210,6 +210,47 @@ the notebook also passes `max_new_tokens`; `max_new_tokens` takes precedence.
 Use the prepared baseline during the workshop and move straight into dataset,
 LoRA, training, and post-training comparison.
 
+## 2026-06-08: Fine-Tuned Output Cut Off At Opening Brace
+
+### Failed cell
+
+```python
+fine_tuned_output = survival_generate(test_prompt)
+print(fine_tuned_output)
+```
+
+### Observed output
+
+```text
+Both `max_new_tokens` (=220) and `max_length`(=32768) seem to have been set.
+Generating up to 220 tokens on cuda...
+Generation finished in 30.5s
+{
+```
+
+### What this means
+
+The fine-tuned model started producing the expected JSON shape, but the
+notebook cut generation off at the 30 second `max_time` cap. The warning also
+showed that Transformers was still seeing the model's 32k configured
+`max_length` while the notebook passed `max_new_tokens`.
+
+### Fixes made
+
+- Changed the small workshop model load from 4-bit to normal precision:
+  `load_in_4bit = False`.
+- Replaced `max_new_tokens` generation calls with explicit short absolute
+  `max_length = input_length + desired_new_tokens`.
+- Increased fine-tuned generation budget to 260 new tokens and 180 seconds.
+- Added `TextStreamer` for the fine-tuned test so output appears live as tokens
+  are generated.
+- Kept compare-prompt generation non-streaming to avoid messy repeated output.
+
+### Result
+
+Needs Colab verification. The next run should stream the fine-tuned JSON instead
+of waiting silently and returning only `{`.
+
 ## New Entry Template
 
 ### Date
