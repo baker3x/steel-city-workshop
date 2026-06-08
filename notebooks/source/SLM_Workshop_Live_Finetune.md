@@ -80,17 +80,22 @@ print("Unsloth import succeeded.")
 
 ## 5. Optional Hugging Face Login
 
-Use this if the selected model requires Hugging Face access.
+Leave this off for the normal live path. Set `RUN_HF_LOGIN = True` only if a
+model load cell later says Hugging Face access is required.
 
 ```python
-from huggingface_hub import notebook_login
+RUN_HF_LOGIN = False
 
-notebook_login()
+if RUN_HF_LOGIN:
+    from huggingface_hub import notebook_login
+    notebook_login()
+else:
+    print("Skipping Hugging Face login for the normal live path.")
 ```
 
 ## 6. Load Base Model
 
-The primary model is Gemma 3 270M. If it fails because of access or package
+The primary model is Gemma 3 270M Instruct. If it fails because of access or package
 compatibility, the code falls back to Qwen2.5 0.5B Instruct.
 
 ```python
@@ -98,7 +103,7 @@ max_seq_length = 1024
 dtype = None
 load_in_4bit = True
 
-PRIMARY_MODEL = "unsloth/gemma-3-270m"
+PRIMARY_MODEL = "unsloth/gemma-3-270m-it"
 BACKUP_MODEL = "unsloth/Qwen2.5-0.5B-Instruct"
 
 def load_model(model_name):
@@ -147,7 +152,8 @@ def generate_response(prompt, max_new_tokens=400, temperature=0.7):
         do_sample=True
     )
 
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    new_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
+    return tokenizer.decode(new_tokens, skip_special_tokens=True)
 ```
 
 ## 8. Test The Base Model
@@ -382,13 +388,15 @@ Focus on safe, practical, general outdoor guidance.
 If the situation is dangerous or medical, include appropriate safety notes.
 """
 
+def make_user_content(user_prompt):
+    return f"{SYSTEM_MESSAGE}\nUser request: {user_prompt}"
+
 def make_training_text(example):
     user = example["instruction"]
     assistant = json.dumps(example["response"], indent=2)
 
     messages = [
-        {"role": "system", "content": SYSTEM_MESSAGE},
-        {"role": "user", "content": user},
+        {"role": "user", "content": make_user_content(user)},
         {"role": "assistant", "content": assistant}
     ]
 
@@ -428,11 +436,13 @@ print("LoRA adapters applied.")
 
 ## 12. Train
 
-For a smoke test during prep, set `max_steps = 3`. For the live workshop, use
-`max_steps = 40`.
+For a smoke test during prep, set `TRAINING_STEPS = 3`. For the live workshop,
+use `TRAINING_STEPS = 40`.
 
 ```python
 from trl import SFTConfig, SFTTrainer
+
+TRAINING_STEPS = 40
 
 training_args = SFTConfig(
     dataset_text_field = "text",
@@ -441,7 +451,7 @@ training_args = SFTConfig(
     per_device_train_batch_size = 2,
     gradient_accumulation_steps = 4,
     warmup_steps = 5,
-    max_steps = 40,
+    max_steps = TRAINING_STEPS,
     learning_rate = 2e-4,
     fp16 = not torch.cuda.is_bf16_supported(),
     bf16 = torch.cuda.is_bf16_supported(),
@@ -471,8 +481,7 @@ FastLanguageModel.for_inference(model)
 
 def survival_generate(prompt, max_new_tokens=450):
     messages = [
-        {"role": "system", "content": SYSTEM_MESSAGE},
-        {"role": "user", "content": prompt}
+        {"role": "user", "content": make_user_content(prompt)}
     ]
 
     text = tokenizer.apply_chat_template(
@@ -491,7 +500,8 @@ def survival_generate(prompt, max_new_tokens=450):
         do_sample=True
     )
 
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    new_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
+    return tokenizer.decode(new_tokens, skip_special_tokens=True)
 
 fine_tuned_output = survival_generate(test_prompt)
 print(fine_tuned_output)
@@ -528,14 +538,25 @@ print("Saved adapter to:", adapter_path)
 ## 16. Optional: Save Adapter To Google Drive
 
 ```python
-from google.colab import drive
-drive.mount("/content/drive")
-```
+SAVE_TO_DRIVE = False
 
-```python
-!mkdir -p "/content/drive/MyDrive/slm_workshop/"
-!cp -r survival_field_card_lora "/content/drive/MyDrive/slm_workshop/"
-!ls -lh "/content/drive/MyDrive/slm_workshop/"
+if SAVE_TO_DRIVE:
+    from google.colab import drive
+    import os, shutil
+
+    drive.mount("/content/drive")
+
+    drive_root = "/content/drive/MyDrive/slm_workshop"
+    drive_adapter_path = f"{drive_root}/survival_field_card_lora"
+
+    os.makedirs(drive_root, exist_ok=True)
+    if os.path.exists(drive_adapter_path):
+        shutil.rmtree(drive_adapter_path)
+    shutil.copytree(adapter_path, drive_adapter_path)
+
+    print("Copied adapter to:", drive_adapter_path)
+else:
+    print("Skipping Drive backup. Set SAVE_TO_DRIVE = True to enable it.")
 ```
 
 ## 17. Optional: Save Dataset JSONL
@@ -556,7 +577,10 @@ Only use this in a fresh runtime if the normal install still produces:
 AttributeError: '_OpNamespace' '_c10d_functional' object has no attribute '_wrap_tensor_autograd'
 ```
 
-```python
+Copy this into a new cell only if you need it. It is intentionally not an
+executable notebook cell so `Run all` does not uninstall packages after training.
+
+```text
 %%capture
 !pip uninstall -y unsloth unsloth_zoo torchao
 !pip install --upgrade pip

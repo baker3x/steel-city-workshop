@@ -34,8 +34,9 @@ Target output shape:
 
 ## Fastest Follow-Along Path
 
-1. Open [notebooks/SLM_Workshop_Live_Finetune.ipynb](notebooks/SLM_Workshop_Live_Finetune.ipynb).
-2. In GitHub, choose **Open in Colab** if available, or download/upload the notebook to Colab.
+1. Open the notebook directly in Colab:
+   [SLM_Workshop_Live_Finetune.ipynb](https://colab.research.google.com/github/baker3x/steel-city-workshop/blob/main/notebooks/SLM_Workshop_Live_Finetune.ipynb).
+2. If that link does not open, use the GitHub copy at [notebooks/SLM_Workshop_Live_Finetune.ipynb](notebooks/SLM_Workshop_Live_Finetune.ipynb), then download/upload it to Colab.
 3. In Colab, choose:
 
 ```text
@@ -120,7 +121,7 @@ If Colab does not cooperate live:
 
 - No GPU: switch to a pre-run adapter or show saved before/after outputs.
 - Install error: use the fallback install cell in the notebook.
-- Model access error: switch from `unsloth/gemma-3-270m` to `unsloth/Qwen2.5-0.5B-Instruct`.
+- Model access error: switch from `unsloth/gemma-3-270m-it` to `unsloth/Qwen2.5-0.5B-Instruct`.
 - Weak output: explain that tiny data plus tiny training is a behavior-control demo, not magic.
 
 ## References
@@ -128,5 +129,5 @@ If Colab does not cooperate live:
 - [Unsloth Colab docs](https://docs.unsloth.ai/get-started/install-and-update/google-colab)
 - [Unsloth pip install/reinstall docs](https://docs.unsloth.ai/get-started/installing-%2B-updating/pip-install)
 - [TRL SFTTrainer docs](https://huggingface.co/docs/trl/sft_trainer)
-- [unsloth/gemma-3-270m model card](https://huggingface.co/unsloth/gemma-3-270m)
+- [unsloth/gemma-3-270m-it model card](https://huggingface.co/unsloth/gemma-3-270m-it)
 - [unsloth/Qwen2.5-0.5B-Instruct model card](https://huggingface.co/unsloth/Qwen2.5-0.5B-Instruct)
