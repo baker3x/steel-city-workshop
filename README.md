@@ -53,8 +53,10 @@ Runtime -> Restart runtime
 6. Rerun the environment check and continue.
 
 The notebook uses a prepared base-model output by default so the live demo does
-not stall on first-token generation. Set `RUN_LIVE_BASELINE = True` only during
-prep if you want to test live base-model generation.
+not stall on first-token generation. In prep, the first baseline generation took
+286 seconds on a T4, then the actual prompt took 26 seconds. Set
+`RUN_LIVE_BASELINE = True` only during prep if you want to test live base-model
+generation.
 
 ## Workshop Flow
 

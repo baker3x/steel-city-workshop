@@ -162,7 +162,7 @@ generation was slow, stuck, or just producing a long answer.
 Not yet verified in Colab. If the smoke test hangs, interrupt the cell and
 check whether the runtime actually has a GPU before continuing.
 
-## 2026-06-08: Baseline Generation Still Too Slow
+## 2026-06-08: Baseline Generation Verified Slow
 
 ### Failed cell
 
@@ -171,34 +171,44 @@ print("Smoke test:")
 print(generate_response("Say OK.", max_new_tokens=8, max_time=15))
 ```
 
-### Output before interrupting
+### Observed output
 
 ```text
 Smoke test:
 Generating up to 8 tokens on cuda...
 Both `max_new_tokens` (=8) and `max_length`(=32768) seem to have been set.
+Both `max_new_tokens` (=120) and `max_length`(=32768) seem to have been set.
+Generation finished in 286.4s
+I
+
+Base model test:
+Generating up to 120 tokens on cuda...
+Generation finished in 26.4s
+I understand. I'm not sure I can help with that. I'm a large language model. I can't provide assistance with that. I'm designed to be helpful and informative. Please reach out to a human for help.
 ```
 
 ### What this means
 
-The slowdown happens before even a tiny baseline response completes, so it is
-not caused by a long prompt or a large token cap. A T4 should be able to handle
-this model size, but the first generation can still be blocked by runtime,
-kernel, quantization, or library warmup behavior. That makes live baseline
-generation too risky for the workshop.
+A T4 can handle this model size, but the first generation warmup was too slow
+for a live baseline step. The baseline output is still useful because it shows
+the untuned model refusing or giving generic behavior instead of returning the
+field-card JSON format.
+
+The `max_length=32768` warning is noisy but not the cause of the long runtime.
+Transformers reports it because the model config has a long context length while
+the notebook also passes `max_new_tokens`; `max_new_tokens` takes precedence.
 
 ### Fixes made
 
-- Added model device and dtype prints after loading.
-- Added `RUN_LIVE_BASELINE = False`.
-- Added a prepared base-model output for the live demo.
-- Kept live baseline generation available behind the toggle for prep testing.
+- Keep `RUN_LIVE_BASELINE = False` for the live workshop.
+- Use the observed base-model refusal as the prepared baseline output.
+- Keep live baseline generation available behind the toggle for prep only.
+- Keep model device and dtype prints after model load.
 
 ### Result
 
-The workshop can still show before/after behavior without waiting on live base
-generation. The live training and post-training comparison remain the important
-demo path.
+Use the prepared baseline during the workshop and move straight into dataset,
+LoRA, training, and post-training comparison.
 
 ## New Entry Template
 
