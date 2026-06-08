@@ -1,0 +1,14 @@
+# Python and notebook caches
+__pycache__/
+.ipynb_checkpoints/
+
+# Colab/local training outputs
+outputs/
+survival_field_card_lora/
+survival_dataset.jsonl
+demo_outputs.md
+
+# Local environment files
+.env
+.venv/
+venv/
