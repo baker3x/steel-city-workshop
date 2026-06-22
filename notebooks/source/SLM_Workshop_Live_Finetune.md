@@ -28,7 +28,7 @@ Run this once in a fresh Colab runtime.
 
 ```python
 %%capture
-!pip uninstall -y unsloth unsloth_zoo torchao
+!pip uninstall -y unsloth unsloth_zoo torchao torchaudio torchvision torchtext
 !pip install --upgrade pip
 !pip install --no-cache-dir -U unsloth
 !pip install --no-cache-dir -U transformers datasets accelerate peft trl bitsandbytes
@@ -50,7 +50,19 @@ This captures the package versions that matter for debugging.
 import importlib.metadata as md
 import torch, platform
 
-packages = ["torch", "torchao", "unsloth", "unsloth_zoo", "transformers", "trl", "peft", "bitsandbytes"]
+packages = [
+    "torch",
+    "torchao",
+    "torchaudio",
+    "torchvision",
+    "torchtext",
+    "unsloth",
+    "unsloth_zoo",
+    "transformers",
+    "trl",
+    "peft",
+    "bitsandbytes",
+]
 
 print("Python:", platform.python_version())
 print("Torch:", torch.__version__)
@@ -68,7 +80,8 @@ for package in packages:
 
 ## 4. Import Unsloth
 
-If this cell fails with `_c10d_functional._wrap_tensor_autograd`, use the
+If this cell fails with `_c10d_functional._wrap_tensor_autograd` or a
+`torchaudio` undefined symbol error, use the
 fallback install section at the bottom of this notebook in a fresh runtime.
 
 ```python
@@ -646,7 +659,7 @@ executable notebook cell so `Run all` does not uninstall packages after training
 
 ```text
 %%capture
-!pip uninstall -y unsloth unsloth_zoo torchao
+!pip uninstall -y unsloth unsloth_zoo torchao torchaudio torchvision torchtext
 !pip install --upgrade pip
 !pip install --no-cache-dir torchao==0.13.0
 !pip install --no-cache-dir -U unsloth transformers datasets accelerate peft trl bitsandbytes
