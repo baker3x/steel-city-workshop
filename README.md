@@ -12,7 +12,7 @@ The demo fine-tunes a small model into a **Survival Field Card Generator**. The
 goal is not to teach the model survival expertise. The goal is to show how a
 small model can be tuned to produce a narrow, repeatable product behavior.
 
-The eight training examples are hand-written workshop examples, not an
+The eight training examples are illustrative workshop examples, not an
 expert-reviewed dataset. The `confidence` field is set to `"medium"` in every
 training response as a format placeholder; it is **not calibrated model
 confidence**.
