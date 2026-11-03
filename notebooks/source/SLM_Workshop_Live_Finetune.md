@@ -6,6 +6,10 @@ The point is behavior control: turn a generic answer into a structured JSON-like
 product response. This is not professional survival, medical, rescue, or
 emergency advice.
 
+The eight hand-written examples teach an output shape. They are not
+expert-reviewed or suitable for assessing factual or safety performance. A
+successful GPU run of this current notebook has not yet been documented.
+
 ## 1. Environment Check
 
 Run this first. You want a GPU, ideally a T4.
@@ -225,6 +229,10 @@ if not RUN_LIVE_BASELINE:
 ```
 
 ## 9. Create Survival Dataset
+
+These eight illustrative responses are the training set. Every `confidence`
+value is the same fixed `"medium"` placeholder for a JSON field; it is not
+calibrated confidence or an assessment of advice quality.
 
 ```python
 survival_examples = [
@@ -583,7 +591,10 @@ def survival_generate(prompt, max_new_tokens=260, max_time=180, stream=True):
 fine_tuned_output = survival_generate(test_prompt, stream=True)
 ```
 
-## 14. Compare Prompts
+## 14. Compare Training Prompts (Demo Only)
+
+All four prompts below appear verbatim in the training examples. This is an
+in-sample demonstration of the target format, not a test of generalization.
 
 ```python
 test_prompts = [
@@ -601,7 +612,81 @@ for prompt in test_prompts:
     print(output)
 ```
 
-## 15. Save Adapter Locally
+## 15. Held-Out Format Check
+
+These prompts have no exact matches in the eight training examples. Run one
+deterministic generation for each prompt and save every raw response. The check
+counts strict JSON parsing and required field types. It does not assess
+whether the outdoor guidance is correct, safe, or well calibrated. This is a
+small format smoke test, not a research benchmark. Download
+`heldout_format_eval.jsonl` before resetting the Colab runtime if you want to
+retain the raw outputs. No result is reported in this repository until the
+cell has been run and reviewed.
+
+```python
+from pathlib import Path
+
+heldout_prompts = [
+    "My paper trail map got wet. How should I protect my route notes for tomorrow?",
+    "What should I put in a basic day-hike preparedness kit?",
+    "My boots are soaked after a hike. How should I prepare them for tomorrow?",
+    "I need to organize a campsite before sunset in light rain.",
+]
+
+training_prompts = {item["instruction"].strip().casefold() for item in survival_examples}
+assert len(heldout_prompts) == len(set(heldout_prompts))
+assert all(prompt.strip().casefold() not in training_prompts for prompt in heldout_prompts)
+
+required_fields = {
+    "scenario", "priority", "steps", "safety_notes", "common_mistakes", "confidence"
+}
+
+def inspect_format(raw_output):
+    try:
+        value = json.loads(raw_output)
+    except json.JSONDecodeError:
+        return {"valid_json": False, "valid_schema": False, "errors": ["not strict JSON"]}
+
+    errors = []
+    if not isinstance(value, dict):
+        errors.append("top level is not an object")
+    else:
+        if set(value) != required_fields:
+            errors.append("field names differ from required schema")
+        for field in ("scenario", "priority", "confidence"):
+            if not isinstance(value.get(field), str) or not value[field].strip():
+                errors.append(f"{field} is not a nonempty string")
+        for field in ("steps", "safety_notes", "common_mistakes"):
+            items = value.get(field)
+            if not isinstance(items, list) or not items or not all(
+                isinstance(item, str) and item.strip() for item in items
+            ):
+                errors.append(f"{field} is not a nonempty list of strings")
+
+    return {"valid_json": True, "valid_schema": not errors, "errors": errors}
+
+heldout_results = []
+for prompt in heldout_prompts:
+    raw_output = survival_generate(prompt, max_new_tokens=260, max_time=180, stream=False)
+    heldout_results.append({
+        "prompt": prompt,
+        "raw_output": raw_output,
+        **inspect_format(raw_output),
+    })
+
+output_path = Path("heldout_format_eval.jsonl")
+output_path.write_text(
+    "".join(json.dumps(result, ensure_ascii=False) + "\n" for result in heldout_results),
+    encoding="utf-8",
+)
+print(f"Model: {model_name}")
+print(f"Held-out prompts: {len(heldout_results)}")
+print(f"Strict JSON: {sum(item['valid_json'] for item in heldout_results)}/{len(heldout_results)}")
+print(f"Schema valid: {sum(item['valid_schema'] for item in heldout_results)}/{len(heldout_results)}")
+print(f"Saved raw outputs and checks to {output_path}")
+```
+
+## 16. Save Adapter Locally
 
 ```python
 adapter_path = "survival_field_card_lora"
@@ -612,7 +697,7 @@ tokenizer.save_pretrained(adapter_path)
 print("Saved adapter to:", adapter_path)
 ```
 
-## 16. Optional: Save Adapter To Google Drive
+## 17. Optional: Save Adapter To Google Drive
 
 ```python
 SAVE_TO_DRIVE = False
@@ -636,7 +721,7 @@ else:
     print("Skipping Drive backup. Set SAVE_TO_DRIVE = True to enable it.")
 ```
 
-## 17. Optional: Save Dataset JSONL
+## 18. Optional: Save Dataset JSONL
 
 ```python
 with open("survival_dataset.jsonl", "w") as file:
@@ -646,7 +731,7 @@ with open("survival_dataset.jsonl", "w") as file:
 print("Saved survival_dataset.jsonl")
 ```
 
-## 18. Fallback Install For Import Error
+## 19. Fallback Install For Import Error
 
 Only use this in a fresh runtime if the normal install still produces:
 
@@ -666,3 +751,4 @@ executable notebook cell so `Run all` does not uninstall packages after training
 ```
 
 Restart runtime, then retry the package diagnostics and Unsloth import cells.
+

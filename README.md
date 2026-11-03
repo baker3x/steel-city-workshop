@@ -3,9 +3,19 @@
 This repo is the follow-along guide for a live workshop on small language model
 fine-tuning in Google Colab.
 
+**Verification status:** The notebook has passed local static checks, but the
+current end-to-end training and held-out evaluation flow has not yet been
+verified in Colab. No held-out results are reported here. See
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md) for observed runs and unresolved items.
+
 The demo fine-tunes a small model into a **Survival Field Card Generator**. The
 goal is not to teach the model survival expertise. The goal is to show how a
 small model can be tuned to produce a narrow, repeatable product behavior.
+
+The eight training examples are hand-written workshop examples, not an
+expert-reviewed dataset. The `confidence` field is set to `"medium"` in every
+training response as a format placeholder; it is **not calibrated model
+confidence**.
 
 > Safety note: this is a fine-tuning demo, not professional survival, medical,
 > rescue, or emergency advice. A real product would need expert-reviewed data,
@@ -71,9 +81,18 @@ The notebook follows this order:
 7. Create and format dataset
 8. Apply LoRA
 9. Train with TRL `SFTTrainer`
-10. Compare base behavior vs fine-tuned behavior
-11. Save adapter
-12. Optional Google Drive backup
+10. Compare base behavior vs fine-tuned behavior on training prompts (demo only)
+11. Run a held-out format check and save raw outputs
+12. Save adapter
+13. Optional Google Drive backup
+
+The training-prompt comparison shows whether the model can imitate the target
+shape on examples it has seen. The separate held-out prompts have no exact
+matches in the training set. Their check counts strict JSON parsing and schema
+validity, and writes each raw response to `heldout_format_eval.jsonl` in the
+Colab runtime. It does not measure factual correctness, calibration, emergency
+usefulness, or safety. No results should be cited until that cell has been run
+and the raw outputs reviewed.
 
 ## Current Known Issue
 
@@ -137,3 +156,4 @@ If Colab does not cooperate live:
 - [TRL SFTTrainer docs](https://huggingface.co/docs/trl/sft_trainer)
 - [unsloth/gemma-3-270m-it model card](https://huggingface.co/unsloth/gemma-3-270m-it)
 - [unsloth/Qwen2.5-0.5B-Instruct model card](https://huggingface.co/unsloth/Qwen2.5-0.5B-Instruct)
+
