@@ -6,7 +6,7 @@ The point is behavior control: turn a generic answer into a structured JSON-like
 product response. This is not professional survival, medical, rescue, or
 emergency advice.
 
-The eight hand-written examples teach an output shape. They are not
+The eight illustrative examples teach an output shape. They are not
 expert-reviewed or suitable for assessing factual or safety performance. A
 successful GPU run of this current notebook has not yet been documented.
 
